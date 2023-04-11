@@ -33,7 +33,7 @@ setup(
     url='https://github.com/SUSE-Enceladus/csp-billing-adapter-amazon',
     entry_points={
         'csp_billing_adapter': [
-            'amazon = csp_billing_adapter_k8s.plugin'
+            'amazon = csp_billing_adapter_amazon.plugin'
         ]
     },
     packages=['csp_billing_adapter_amazon'],
