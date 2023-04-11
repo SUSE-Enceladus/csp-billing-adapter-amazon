@@ -1,0 +1,3 @@
+csp-billing-adapter
+boto3
+pluggy
