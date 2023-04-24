@@ -17,6 +17,7 @@
 
 %{?!python_module:%define python_module() python-%{**} python3-%{**}}
 %global skip_python2 1
+%define pythons python3
 Name:           csp-billing-adapter-amazon
 Version:        0.0.1
 Release:        0
@@ -36,10 +37,10 @@ BuildRequires:  %{python_module pytest}
 BuildRequires:  %{python_module coverage}
 BuildRequires:  %{python_module pytest-cov}
 %endif
-Requires:       %{python_module setuptools}
-Requires:       %{python_module pluggy}
-Requires:       %{python_module boto3}
-Requires:       %{python_module csp-billing-adapter}
+Requires:       python-setuptools
+Requires:       python-pluggy
+Requires:       python-boto3
+Requires:       python-csp-billing-adapter
 BuildArch:      noarch
 %python_subpackages
 
