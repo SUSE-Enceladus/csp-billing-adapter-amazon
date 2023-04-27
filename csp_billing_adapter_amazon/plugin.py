@@ -14,6 +14,11 @@
 # limitations under the License.
 #
 
+"""
+Implements the CSP hook functions for Amazon AWS. This handles the
+metered billing of product usage in the AWS Marketplace.
+"""
+
 import boto3
 import csp_billing_adapter
 
