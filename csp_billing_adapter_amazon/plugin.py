@@ -89,9 +89,14 @@ def get_csp_name(config: Config):
 
 @csp_billing_adapter.hookimpl(trylast=True)
 def get_account_info(config: Config):
-    """Return a dictionary with account information"""
-    metadata = _get_metadata()
-    account_info = _filter_metadata(metadata)
+    """
+    Return a dictionary with account information
+
+    The information contains the metadata for document, signature and pkcs7.
+    """
+    account_info = _get_metadata()
+    account_info['document'] = json.loads(account_info.get('document', '{}'))
+    account_info['cloud_provider'] = 'amazon'
 
     return account_info
 
@@ -111,8 +116,7 @@ def _get_api_header():
     return {'X-aws-ec2-metadata-token': token}
 
 def _get_metadata():
-    """Return document metadata for latest version of API."""
-    metadata_options = ['document']
+    metadata_options = ['document', 'signature', 'pkcs7']
     metadata = {}
     request_header = _get_api_header()
     for metadata_option in metadata_options:
@@ -134,12 +138,3 @@ def _fetch_metadata(uri, request_header):
         return None
 
     return value.decode()
-
-def _filter_metadata(metadata):
-    """Return the relevant key-values for Amazon billing adapter."""
-    account_info = {'cloud_provider': 'amazon'}
-    document_dict = json.loads(metadata.get('document'))
-    account_info['account_id'] = document_dict.get('accountId')
-    account_info['arch'] = document_dict.get('architecture')
-
-    return account_info
