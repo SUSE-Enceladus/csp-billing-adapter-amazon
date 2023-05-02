@@ -32,6 +32,7 @@ from csp_billing_adapter.config import Config
 METADATA_ADDR = 'http://169.254.169.254/latest'
 METADATA_TOKEN_URL = METADATA_ADDR + '/api/token'
 
+
 @csp_billing_adapter.hookimpl
 def setup_adapter(config: Config):
     """Handle any plugin specific setup at adapter start"""
@@ -100,6 +101,7 @@ def get_account_info(config: Config):
 
     return account_info
 
+
 def _get_api_header():
     """Get the header to be used in requests to the metadata service,
         IMDs. Prefer IMDSv2 which requires a token."""
@@ -115,6 +117,7 @@ def _get_api_header():
 
     return {'X-aws-ec2-metadata-token': token}
 
+
 def _get_metadata():
     metadata_options = ['document', 'signature', 'pkcs7']
     metadata = {}
@@ -125,6 +128,7 @@ def _get_metadata():
             request_header
         )
     return metadata
+
 
 def _fetch_metadata(uri, request_header):
     """Return the response of the metadata request."""
