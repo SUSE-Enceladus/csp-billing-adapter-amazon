@@ -75,5 +75,21 @@ def test_get_csp_name():
     assert plugin.get_csp_name(config) == 'amazon'
 
 
-def test_get_account_info():
-    plugin.get_account_info(config)  # Currently no-op
+@patch('csp_billing_adapter_amazon.plugin.urllib.request.urlopen')
+def test_get_account_info(mock_urlopen):
+    urlopen = Mock()
+    urlopen.read.side_effect = [
+        b'secrettoken',
+        b'{"some": "info"}',
+        b'signature',
+        b'pkcs7'
+    ]
+    mock_urlopen.return_value = urlopen
+
+    info = plugin.get_account_info(config)
+    assert info == {
+        'cloud_provider': 'amazon',
+        'document': {'some': 'info'},
+        'pkcs7': 'pkcs7',
+        'signature': 'signature'
+    }
