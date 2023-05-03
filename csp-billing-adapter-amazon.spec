@@ -65,7 +65,7 @@ metering of usage in Amazon AWS.
 
 %files %{python_files}
 %license LICENSE
-%doc README.md CONTRIBUTING.md
+%doc README.md CONTRIBUTING.md CHANGES.md
 %{python_sitelib}/csp_billing_adapter_amazon
 %{python_sitelib}/csp_billing_adapter_amazon-%{version}*-info
 
