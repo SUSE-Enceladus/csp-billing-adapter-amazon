@@ -133,8 +133,6 @@ def _get_metadata():
 def _fetch_metadata(uri, request_header):
     """Return the response of the metadata request."""
     url = METADATA_ADDR + '/dynamic/instance-identity/' + uri
-    data_request = None
-    value = b''
     data_request = urllib.request.Request(url, headers=request_header)
     try:
         value = urllib.request.urlopen(data_request).read()
