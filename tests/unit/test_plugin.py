@@ -16,6 +16,7 @@
 
 import datetime
 import pytest
+import urllib.error
 
 from unittest.mock import Mock, patch
 
@@ -93,3 +94,27 @@ def test_get_account_info(mock_urlopen):
         'pkcs7': 'pkcs7',
         'signature': 'signature'
     }
+
+
+@patch('csp_billing_adapter_amazon.plugin.urllib.request.urlopen')
+def test_get_api_header_token_fail(mock_urlopen):
+    urlopen = Mock()
+    urlopen.read.side_effect = [
+        urllib.error.URLError('Cannot get token!')
+    ]
+    mock_urlopen.return_value = urlopen
+
+    header = plugin._get_api_header()
+    assert header == {}
+
+
+@patch('csp_billing_adapter_amazon.plugin.urllib.request.urlopen')
+def test_fetch_metadata_fail(mock_urlopen):
+    urlopen = Mock()
+    urlopen.read.side_effect = [
+        urllib.error.URLError('Cannot get metadata!')
+    ]
+    mock_urlopen.return_value = urlopen
+
+    metadata = plugin._fetch_metadata('metadata', {'header': 'data'})
+    assert metadata is None
