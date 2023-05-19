@@ -20,14 +20,18 @@ metered billing of product usage in the AWS Marketplace.
 """
 
 import boto3
-import csp_billing_adapter
 import json
+import logging
 import urllib.request
 import urllib.error
+
+import csp_billing_adapter
 
 from datetime import datetime
 
 from csp_billing_adapter.config import Config
+
+log = logging.getLogger('CSPBillingAdapter')
 
 METADATA_ADDR = 'http://169.254.169.254/latest'
 METADATA_TOKEN_URL = METADATA_ADDR + '/api/token'
@@ -74,8 +78,11 @@ def meter_billing(
                 retries -= 1
                 continue
             else:
-                return response.get('MeteringRecordId', None)
+                record_id = response.get('MeteringRecordId', None)
+                log.info(f'New metered billing record with ID: {record_id}')
+                return record_id
 
+        log.error(f'Failed to meter bill: {str(exc)}')
         raise exc  # Re-raise exception to calling scope
     else:
         # Placeholder for billing multiple dimensions
@@ -103,16 +110,21 @@ def get_account_info(config: Config):
 
 
 def _get_api_header():
-    """Get the header to be used in requests to the metadata service,
-        IMDs. Prefer IMDSv2 which requires a token."""
+    """
+    Get the header to be used in requests
+
+    Prefer IMDSv2 which requires a token.
+    """
     request = urllib.request.Request(
         METADATA_TOKEN_URL,
         headers={'X-aws-ec2-metadata-token-ttl-seconds': '21600'},
         method='PUT'
     )
+
     try:
         token = urllib.request.urlopen(request).read().decode()
-    except urllib.error.URLError:
+    except urllib.error.URLError as error:
+        log.error(f'Failed to retrieve metadata token: {str(error)}')
         return {}
 
     return {'X-aws-ec2-metadata-token': token}
@@ -122,11 +134,13 @@ def _get_metadata():
     metadata_options = ['document', 'signature', 'pkcs7']
     metadata = {}
     request_header = _get_api_header()
+
     for metadata_option in metadata_options:
         metadata[metadata_option] = _fetch_metadata(
             metadata_option,
             request_header
         )
+
     return metadata
 
 
@@ -134,9 +148,11 @@ def _fetch_metadata(uri, request_header):
     """Return the response of the metadata request."""
     url = METADATA_ADDR + '/dynamic/instance-identity/' + uri
     data_request = urllib.request.Request(url, headers=request_header)
+
     try:
         value = urllib.request.urlopen(data_request).read()
-    except urllib.error.URLError:
+    except urllib.error.URLError as error:
+        log.error(f'Failed to retrieve metadata for: {url}. {str(error)}')
         return None
 
     return value.decode()
