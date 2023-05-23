@@ -104,7 +104,7 @@ def get_account_info(config: Config):
     """
     account_info = _get_metadata()
     account_info['document'] = json.loads(account_info.get('document', '{}'))
-    account_info['cloud_provider'] = 'amazon'
+    account_info['cloud_provider'] = get_csp_name(config)
 
     return account_info
 
