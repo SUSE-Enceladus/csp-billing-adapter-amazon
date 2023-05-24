@@ -32,8 +32,8 @@ with metered billing the exception is raised.
 
 ## Get CSP Name
 
-The `get_csp_name` returns the name of the CSP provider. In this case it
-is *Amazon*.
+The `get_csp_name` function returns the name of the CSP provider. In this
+case it is *Amazon*.
 
 ## Get Account Info
 
@@ -67,4 +67,4 @@ instance or container. The structure of this information is as follows:
 
 This information is pulled from the Amazon Instance metadata endpoint:
 http://169.254.169.254/latest. Note: the exact information in the
-*document* key may vary.
+*document* entry may vary.
