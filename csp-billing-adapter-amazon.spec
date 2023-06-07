@@ -21,7 +21,7 @@
 Name:           csp-billing-adapter-amazon
 Version:        0.2.0
 Release:        0
-Summary:        TBD
+Summary:        Implements CSP metering hooks for csp-billing-adapter
 License:        Apache-2.0
 Group:          Development/Languages/Python
 URL:            https://github.com/SUSE-Enceladus/%{name}
