@@ -35,11 +35,14 @@ def test_setup():
     plugin.setup_adapter(config)  # Currently no-op
 
 
+@patch('csp_billing_adapter_amazon.plugin.get_region')
 @patch('csp_billing_adapter_amazon.plugin.boto3')
-def test_meter_billing(mock_boto3):
+def test_meter_billing(mock_boto3, mock_get_region):
     client = Mock()
     client.meter_usage.return_value = {'MeteringRecordId': '0123456789'}
     mock_boto3.client.return_value = client
+
+    mock_get_region.return_value = 'us-east-1'
 
     dimensions = {'tier_1': 10}
     timestamp = datetime.datetime.now(datetime.timezone.utc)
@@ -54,11 +57,14 @@ def test_meter_billing(mock_boto3):
     assert record_id == '0123456789'
 
 
+@patch('csp_billing_adapter_amazon.plugin.get_region')
 @patch('csp_billing_adapter_amazon.plugin.boto3')
-def test_meter_billing_error(mock_boto3):
+def test_meter_billing_error(mock_boto3, mock_get_region):
     client = Mock()
     client.meter_usage.side_effect = Exception('Failed to meter bill!')
     mock_boto3.client.return_value = client
+
+    mock_get_region.return_value = 'us-east-1'
 
     dimensions = {'tier_1': 10}
     timestamp = datetime.datetime.now(datetime.timezone.utc)
@@ -118,3 +124,23 @@ def test_fetch_metadata_fail(mock_urlopen):
 
     metadata = plugin._fetch_metadata('metadata', {'header': 'data'})
     assert metadata is None
+
+
+@patch('csp_billing_adapter_amazon.plugin._fetch_metadata')
+@patch('csp_billing_adapter_amazon.plugin._get_api_header')
+def test_get_region(mock_get_header, mock_fetch_metadata):
+    mock_get_header.return_value = {'header': 'data'}
+    mock_fetch_metadata.return_value = '{"region": "us-east-1"}'
+
+    region = plugin.get_region()
+    assert region == 'us-east-1'
+
+
+@patch('csp_billing_adapter_amazon.plugin._fetch_metadata')
+@patch('csp_billing_adapter_amazon.plugin._get_api_header')
+def test_get_region_bad_data(mock_get_header, mock_fetch_metadata):
+    mock_get_header.return_value = {'header': 'data'}
+    mock_fetch_metadata.return_value = '{"other": "data"}'
+
+    with pytest.raises(Exception):
+        plugin.get_region()
