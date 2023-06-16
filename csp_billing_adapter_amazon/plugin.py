@@ -58,7 +58,6 @@ def meter_billing(
     is attempted 3 times before re-raising the exception to
     calling scope.
     """
-    client = boto3.client('meteringmarketplace')
     retries = 3
 
     if len(dimensions) == 1:
@@ -66,6 +65,10 @@ def meter_billing(
 
         while retries > 0:
             try:
+                client = boto3.client(
+                    'meteringmarketplace',
+                    region_name=get_region()
+                )
                 response = client.meter_usage(
                     ProductCode=config.product_code,
                     Timestamp=timestamp,
@@ -93,6 +96,19 @@ def meter_billing(
 def get_csp_name(config: Config):
     """Return CSP provider name"""
     return 'amazon'
+
+
+def get_region():
+    """Return the region name"""
+    api_header = _get_api_header()
+    document = _fetch_metadata('document', api_header)
+    metadata = json.loads(document)
+    region = metadata.get('region')
+
+    if not region:
+        raise Exception('Unable to retrieve current region.')
+
+    return region
 
 
 @csp_billing_adapter.hookimpl(trylast=True)
