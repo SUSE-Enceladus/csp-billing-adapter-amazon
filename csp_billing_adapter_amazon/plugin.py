@@ -59,21 +59,21 @@ def meter_billing(
     calling scope.
     """
     retries = 3
+    region = get_region()
+    status = {}
 
-    if len(dimensions) == 1:
-        dimension_name = next(iter(dimensions))
-
+    for dimension_name, usage_quantity in dimensions.items():
         while retries > 0:
             try:
                 client = boto3.client(
                     'meteringmarketplace',
-                    region_name=get_region()
+                    region_name=region
                 )
                 response = client.meter_usage(
                     ProductCode=config.product_code,
                     Timestamp=timestamp,
                     UsageDimension=dimension_name,
-                    UsageQuantity=dimensions[dimension_name],
+                    UsageQuantity=usage_quantity,
                     DryRun=dry_run
                 )
             except Exception as error:
@@ -83,13 +83,24 @@ def meter_billing(
             else:
                 record_id = response.get('MeteringRecordId', None)
                 log.info(f'New metered billing record with ID: {record_id}')
-                return record_id
+                status[dimension_name] = {
+                    'record_id': record_id,
+                    'status': 'submitted'
+                }
+                exc = None
+                break
 
-        log.error(f'Failed to meter bill: {str(exc)}')
-        raise exc  # Re-raise exception to calling scope
-    else:
-        # Placeholder for billing multiple dimensions
-        pass
+        if exc:
+            msg = (
+                f'Failed to meter bill dimension {dimension_name}: {str(exc)}'
+            )
+            status[dimension_name] = {
+                'error': msg,
+                'status': 'failed'
+            }
+            log.error(msg)
+
+    return status
 
 
 @csp_billing_adapter.hookimpl(trylast=True)

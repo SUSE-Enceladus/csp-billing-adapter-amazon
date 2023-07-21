@@ -47,14 +47,15 @@ def test_meter_billing(mock_boto3, mock_get_region):
     dimensions = {'tier_1': 10}
     timestamp = datetime.datetime.now(datetime.timezone.utc)
 
-    record_id = plugin.meter_billing(
+    status = plugin.meter_billing(
         config,
         dimensions,
         timestamp,
         dry_run=True
     )
 
-    assert record_id == '0123456789'
+    assert status['tier_1']['record_id'] == '0123456789'
+    assert status['tier_1']['status'] == 'submitted'
 
 
 @patch('csp_billing_adapter_amazon.plugin.get_region')
@@ -69,13 +70,16 @@ def test_meter_billing_error(mock_boto3, mock_get_region):
     dimensions = {'tier_1': 10}
     timestamp = datetime.datetime.now(datetime.timezone.utc)
 
-    with pytest.raises(Exception):
-        plugin.meter_billing(
-            config,
-            dimensions,
-            timestamp,
-            dry_run=True
-        )
+    status = plugin.meter_billing(
+        config,
+        dimensions,
+        timestamp,
+        dry_run=True
+    )
+
+    assert status['tier_1']['error'] == \
+        'Failed to meter bill dimension tier_1: Failed to meter bill!'
+    assert status['tier_1']['status'] == 'failed'
 
 
 def test_get_csp_name():
