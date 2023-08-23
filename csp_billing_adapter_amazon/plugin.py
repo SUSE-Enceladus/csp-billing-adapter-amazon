@@ -22,19 +22,18 @@ metered billing of product usage in the AWS Marketplace.
 import boto3
 import json
 import logging
+import time
 import urllib.request
 import urllib.error
 
 import csp_billing_adapter
 
 from datetime import datetime
+from socket import (has_ipv6, create_connection)
 
 from csp_billing_adapter.config import Config
 
 log = logging.getLogger('CSPBillingAdapter')
-
-METADATA_ADDR = 'http://169.254.169.254/latest'
-METADATA_TOKEN_URL = METADATA_ADDR + '/api/token'
 
 
 @csp_billing_adapter.hookimpl
@@ -136,14 +135,42 @@ def get_account_info(config: Config):
     return account_info
 
 
+def _get_ip_addr():
+    metadata_ip_addrs = {
+        'ipv6_addr': 'fd00:ec2::254',
+        'ipv4_addr': '169.254.169.254'
+    }
+    # Check if the Python implementation has IPv6 support in the first place
+    if not has_ipv6:
+        return metadata_ip_addrs.get('ipv4_addr')
+
+    for ip_family, ip_addr in metadata_ip_addrs.items():
+        for i in range(3):
+            try:
+                socket = create_connection((ip_addr, 80), timeout=1)
+                socket.close()
+                if ip_family == 'ipv6_addr':
+                    # Make the IPv6 address http friendly
+                    ip_addr = f'[{ip_addr}]'
+
+                return ip_addr
+            except OSError:
+                # Cannot reach the network
+                break
+            except TimeoutError:
+                # Not ready yet wait a little bit
+                time.sleep(1)
+
+
 def _get_api_header():
     """
     Get the header to be used in requests
 
     Prefer IMDSv2 which requires a token.
     """
+    ip_addr = _get_ip_addr()
     request = urllib.request.Request(
-        METADATA_TOKEN_URL,
+        f'http://{ip_addr}/latest/api/token',
         headers={'X-aws-ec2-metadata-token-ttl-seconds': '21600'},
         method='PUT'
     )
@@ -151,8 +178,9 @@ def _get_api_header():
     try:
         token = urllib.request.urlopen(request).read().decode()
     except urllib.error.URLError as error:
-        log.error(f'Failed to retrieve metadata token: {str(error)}')
-        return {}
+        error_message = f'Failed to retrieve metadata token: {str(error)}'
+        log.error(error_message)
+        raise Exception(error_message)
 
     return {'X-aws-ec2-metadata-token': token}
 
@@ -173,7 +201,8 @@ def _get_metadata():
 
 def _fetch_metadata(uri, request_header):
     """Return the response of the metadata request."""
-    url = METADATA_ADDR + '/dynamic/instance-identity/' + uri
+    ip_addr = _get_ip_addr()
+    url = f'http://{ip_addr}/dynamic/instance-identity/{uri}'
     data_request = urllib.request.Request(url, headers=request_header)
 
     try:
