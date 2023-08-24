@@ -106,16 +106,39 @@ def test_get_account_info(mock_urlopen):
     }
 
 
+@patch('csp_billing_adapter_amazon.plugin._get_ip_addr')
 @patch('csp_billing_adapter_amazon.plugin.urllib.request.urlopen')
-def test_get_api_header_token_fail(mock_urlopen):
+def test_get_api_header_token_fail(mock_urlopen, mock_get_ip_addr):
     urlopen = Mock()
     urlopen.read.side_effect = [
         urllib.error.URLError('Cannot get token!')
     ]
     mock_urlopen.return_value = urlopen
 
+    with pytest.raises(Exception):
+        plugin._get_api_header()
+
+
+@patch('csp_billing_adapter_amazon.plugin.urllib.request.urlopen')
+def test_get_api_header_token_ok(mock_urlopen):
+    urlopen = Mock()
+    urlopen.read.return_value = b'foo'
+    mock_urlopen.return_value = urlopen
+
     header = plugin._get_api_header()
-    assert header == {}
+    assert header == {'X-aws-ec2-metadata-token': 'foo'}
+
+
+@patch('csp_billing_adapter_amazon.plugin.create_connection')
+def test_get_ipv6_addr(mock_create_connection):
+    ipv6_addr = plugin._get_ip_addr()
+    assert ipv6_addr == '[fd00:ec2::254]'
+
+
+@patch('csp_billing_adapter_amazon.plugin.has_ipv6', False)
+def test_get_ipv4_addr():
+    ipv4_addr = plugin._get_ip_addr()
+    assert ipv4_addr == '169.254.169.254'
 
 
 @patch('csp_billing_adapter_amazon.plugin.urllib.request.urlopen')
