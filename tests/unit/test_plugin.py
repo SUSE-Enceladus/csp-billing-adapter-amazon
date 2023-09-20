@@ -171,3 +171,9 @@ def test_get_region_bad_data(mock_get_header, mock_fetch_metadata):
 
     with pytest.raises(Exception):
         plugin.get_region()
+
+
+def test_get_version():
+    version = plugin.get_version()
+    assert version[0] == 'amazon_plugin'
+    assert version[1]

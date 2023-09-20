@@ -32,6 +32,7 @@ from datetime import datetime
 from socket import (has_ipv6, create_connection)
 
 from csp_billing_adapter.config import Config
+from csp_billing_adapter_amazon import __version__
 
 log = logging.getLogger('CSPBillingAdapter')
 
@@ -212,3 +213,8 @@ def _fetch_metadata(uri, request_header):
         return None
 
     return value.decode()
+
+
+@csp_billing_adapter.hookimpl
+def get_version():
+    return ('amazon_plugin', __version__)
