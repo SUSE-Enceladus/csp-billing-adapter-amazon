@@ -203,7 +203,7 @@ def _get_metadata():
 def _fetch_metadata(uri, request_header):
     """Return the response of the metadata request."""
     ip_addr = _get_ip_addr()
-    url = f'http://{ip_addr}/dynamic/instance-identity/{uri}'
+    url = f'http://{ip_addr}/latest/dynamic/instance-identity/{uri}'
     data_request = urllib.request.Request(url, headers=request_header)
 
     try:
