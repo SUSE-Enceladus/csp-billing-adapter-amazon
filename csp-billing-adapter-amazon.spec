@@ -19,7 +19,7 @@
 %global skip_python2 1
 %define pythons python3
 Name:           csp-billing-adapter-amazon
-Version:        0.5.0
+Version:        0.5.1
 Release:        0
 Summary:        Implements Amazon metering hooks for csp-billing-adapter
 License:        Apache-2.0
