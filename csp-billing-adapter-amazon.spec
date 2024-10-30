@@ -43,6 +43,7 @@ Requires:       python-pluggy
 Requires:       python-boto3
 Requires:       python-csp-billing-adapter
 BuildArch:      noarch
+Obsoletes:      python3-csp-billing-adapter-amazon < %{version}
 %python_subpackages
 
 %description
