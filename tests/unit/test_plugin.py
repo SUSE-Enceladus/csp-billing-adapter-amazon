@@ -51,6 +51,8 @@ def test_meter_billing(mock_boto3, mock_get_region):
         config,
         dimensions,
         timestamp,
+        '2024-10-02T17:58:09.985794+00:00',
+        '2024-10-02T17:58:09.985794+00:00',
         dry_run=True
     )
 
@@ -74,6 +76,8 @@ def test_meter_billing_error(mock_boto3, mock_get_region):
         config,
         dimensions,
         timestamp,
+        '2024-10-02T17:58:09.985794+00:00',
+        '2024-10-02T17:58:09.985794+00:00',
         dry_run=True
     )
 
