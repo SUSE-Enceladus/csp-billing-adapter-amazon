@@ -177,3 +177,171 @@ def test_get_version():
     version = plugin.get_version()
     assert version[0] == 'amazon_plugin'
     assert version[1]
+
+
+@patch('csp_billing_adapter_amazon.plugin.get_region')
+@patch('csp_billing_adapter_amazon.plugin.boto3')
+def test_batch_meter_billing(mock_boto3, mock_get_region):
+    timestamp = datetime.datetime.now(datetime.timezone.utc)
+    client = Mock()
+    client.batch_meter_usage.return_value = {
+        'Results': [{
+            'UsageRecord': {
+                'Timestamp': timestamp,
+                'CustomerIdentifier': '123xyz',
+                'Dimension': 'tier_1',
+                'Quantity': 10
+            },
+            'MeteringRecordId': '0123456789',
+            'Status': 'Success'
+        }]
+    }
+    mock_boto3.client.return_value = client
+
+    mock_get_region.return_value = 'us-east-1'
+
+    dimensions = {'tier_1': 10}
+    customer_id = '123xyz'
+
+    status = plugin.meter_billing(
+        config,
+        dimensions,
+        timestamp,
+        dry_run=False,
+        customer_id=customer_id
+    )
+
+    assert status['tier_1']['record_id'] == '0123456789'
+    assert status['tier_1']['status'] == 'submitted'
+
+
+@patch('csp_billing_adapter_amazon.plugin.get_region')
+@patch('csp_billing_adapter_amazon.plugin.boto3')
+def test_batch_meter_billing_error(mock_boto3, mock_get_region):
+    client = Mock()
+    client.batch_meter_usage.side_effect = Exception('Failed to meter bill!')
+    mock_boto3.client.return_value = client
+
+    mock_get_region.return_value = 'us-east-1'
+
+    dimensions = {'tier_1': 10}
+    timestamp = datetime.datetime.now(datetime.timezone.utc)
+    customer_id = '123xyz'
+
+    status = plugin.meter_billing(
+        config,
+        dimensions,
+        timestamp,
+        dry_run=True,
+        customer_id=customer_id
+    )
+
+    assert status['tier_1']['error'] == \
+        'Failed to meter bill. Failed to meter bill!'
+    assert status['tier_1']['status'] == 'failed'
+
+
+@patch('csp_billing_adapter_amazon.plugin.get_region')
+@patch('csp_billing_adapter_amazon.plugin.boto3')
+def test_batch_meter_billing_unprocessed(mock_boto3, mock_get_region):
+    timestamp = datetime.datetime.now(datetime.timezone.utc)
+    client = Mock()
+    client.batch_meter_usage.return_value = {
+        'UnprocessedRecords': [{
+            'Timestamp': timestamp,
+            'CustomerIdentifier': '123xyz',
+            'Dimension': 'tier_1',
+            'Quantity': 10
+        }]
+    }
+    mock_boto3.client.return_value = client
+
+    mock_get_region.return_value = 'us-east-1'
+
+    dimensions = {'tier_1': 10}
+    customer_id = '123xyz'
+
+    status = plugin.meter_billing(
+        config,
+        dimensions,
+        timestamp,
+        dry_run=False,
+        customer_id=customer_id
+    )
+
+    msg = 'Unable to process metering for dimension: tier_1'
+    assert status['tier_1']['error'] == msg
+    assert status['tier_1']['status'] == 'failed'
+
+
+@patch('csp_billing_adapter_amazon.plugin.get_region')
+@patch('csp_billing_adapter_amazon.plugin.boto3')
+def test_batch_meter_billing_no_subscribe(mock_boto3, mock_get_region):
+    timestamp = datetime.datetime.now(datetime.timezone.utc)
+    client = Mock()
+    client.batch_meter_usage.return_value = {
+        'Results': [{
+            'UsageRecord': {
+                'Timestamp': timestamp,
+                'CustomerIdentifier': '123xyz',
+                'Dimension': 'tier_1',
+                'Quantity': 10
+            },
+            'MeteringRecordId': '0123456789',
+            'Status': 'CustomerNotSubscribed'
+        }]
+    }
+    mock_boto3.client.return_value = client
+
+    mock_get_region.return_value = 'us-east-1'
+
+    dimensions = {'tier_1': 10}
+    customer_id = '123xyz'
+
+    status = plugin.meter_billing(
+        config,
+        dimensions,
+        timestamp,
+        dry_run=False,
+        customer_id=customer_id
+    )
+
+    msg = 'Customer not subscribed to foo'
+    assert status['tier_1']['error'] == msg
+    assert status['tier_1']['status'] == 'failed'
+
+
+@patch('csp_billing_adapter_amazon.plugin.get_region')
+@patch('csp_billing_adapter_amazon.plugin.boto3')
+def test_batch_meter_billing_no_status(mock_boto3, mock_get_region):
+    timestamp = datetime.datetime.now(datetime.timezone.utc)
+    client = Mock()
+    client.batch_meter_usage.return_value = {
+        'Results': [{
+            'UsageRecord': {
+                'Timestamp': timestamp,
+                'CustomerIdentifier': '123xyz',
+                'Dimension': 'tier_1',
+                'Quantity': 10
+            },
+            'MeteringRecordId': '0123456789'
+        }]
+    }
+    mock_boto3.client.return_value = client
+
+    mock_get_region.return_value = 'us-east-1'
+
+    dimensions = {'tier_1': 10}
+    customer_id = '123xyz'
+
+    status = plugin.meter_billing(
+        config,
+        dimensions,
+        timestamp,
+        dry_run=False,
+        customer_id=customer_id
+    )
+
+    msg = 'Status unknown for dimension: tier_1'
+    assert status['tier_1']['error'] == msg
+    assert status['tier_1']['status'] == 'failed'
