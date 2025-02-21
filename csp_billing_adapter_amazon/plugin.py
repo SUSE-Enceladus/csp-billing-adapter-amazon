@@ -43,26 +43,16 @@ def setup_adapter(config: Config):
     pass
 
 
-@csp_billing_adapter.hookimpl(trylast=True)
-def meter_billing(
+def meter_usage(
+    status: dict,
     config: Config,
-    dimensions: dict,
+    region: str,
     timestamp: datetime,
-    dry_run: bool
+    dimensions: dict,
+    dry_run: str
 ):
-    """
-    Process a metered billing based on the dimensions provided
-
-    If a single dimension is provided the meter_usage API is
-    used for the metering. If there is an error the metering
-    is attempted 3 times before re-raising the exception to
-    calling scope.
-    """
-    retries = 3
-    region = get_region()
-    status = {}
-
     for dimension_name, usage_quantity in dimensions.items():
+        retries = 3
         while retries > 0:
             try:
                 client = boto3.client(
@@ -99,6 +89,125 @@ def meter_billing(
                 'status': 'failed'
             }
             log.error(msg)
+
+
+def batch_meter_usage(
+    status: dict,
+    config: Config,
+    region: str,
+    timestamp: datetime,
+    dimensions: dict,
+    customer_id: str
+):
+    records = []
+    for dimension_name, usage_quantity in dimensions.items():
+        records.append({
+            'Timstamp': timestamp,
+            'CustomerIdentifier': customer_id,
+            'Dimension': dimension_name,
+            'Quantity': usage_quantity
+        })
+
+    retries = 3
+    exc = None
+    while retries > 0:
+        try:
+            client = boto3.client(
+                'meteringmarketplace',
+                region_name=region
+            )
+            response = client.batch_meter_usage(
+                UsageRecords=records,
+                ProductCode=config.product_code
+            )
+        except Exception as error:
+            exc = error
+            retries -= 1
+            continue
+        else:
+            for record in response.get('Results', []):
+                dimension = record['UsageRecord']['Dimension']
+                record_id = record.get('MeteringRecordId', None)
+                dim_status = record.get('Status')
+
+                if not dim_status:
+                    msg = f'Status unknown for dimension: {dimension}'
+                    status[dimension] = {
+                        'error': msg,
+                        'status': 'failed'
+                    }
+                    log.error(msg)
+                elif dim_status == 'CustomerNotSubscribed':
+                    msg = f'Customer not subscribed to {config.product_code}'
+                    status[dimension] = {
+                        'error': msg,
+                        'status': 'failed'
+                    }
+                    log.error(msg)
+                else:
+                    status[dimension] = {
+                        'record_id': record_id,
+                        'status': 'submitted'
+                    }
+                    log.info(
+                        'New batch metered billing record '
+                        f'with ID: {record_id} for dimension: {dimension}'
+                    )
+
+            for record in response.get('UnprocessedRecords', []):
+                dimension = record['Dimension']
+                msg = f'Unable to process metering for dimension: {dimension}'
+                status[dimension] = {
+                    'error': msg,
+                    'status': 'failed'
+                }
+                log.error(msg)
+
+            break
+
+    if exc:
+        msg = (
+            f'Failed to meter bill. {str(exc)}'
+        )
+        log.error(msg)
+
+        for record in records:
+            status[record['Dimension']] = {
+                'error': msg,
+                'status': 'failed'
+            }
+
+
+@csp_billing_adapter.hookimpl(trylast=True)
+def meter_billing(
+    config: Config,
+    dimensions: dict,
+    timestamp: datetime,
+    dry_run: bool,
+    customer_id: str = None
+):
+    """
+    Process a metered billing based on the dimensions provided
+
+    If a single dimension is provided the meter_usage API is
+    used for the metering. If there is an error the metering
+    is attempted 3 times before re-raising the exception to
+    calling scope.
+    """
+    region = get_region()
+    status = {}
+
+    if customer_id:
+        batch_meter_usage(
+            status,
+            config,
+            region,
+            timestamp,
+            dimensions,
+            customer_id
+        )
+    else:
+        meter_usage(status, config, region, timestamp, dimensions, dry_run)
 
     return status
 
