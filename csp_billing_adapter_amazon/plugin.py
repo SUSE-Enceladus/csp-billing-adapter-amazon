@@ -102,7 +102,7 @@ def batch_meter_usage(
     records = []
     for dimension_name, usage_quantity in dimensions.items():
         records.append({
-            'Timstamp': timestamp,
+            'Timestamp': timestamp,
             'CustomerIdentifier': customer_id,
             'Dimension': dimension_name,
             'Quantity': usage_quantity
@@ -184,7 +184,7 @@ def meter_billing(
     dimensions: dict,
     timestamp: datetime,
     dry_run: bool,
-    customer_id: str = None
+    customer_id: str
 ):
     """
     Process a metered billing based on the dimensions provided

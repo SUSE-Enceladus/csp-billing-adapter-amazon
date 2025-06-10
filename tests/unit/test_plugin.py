@@ -51,7 +51,8 @@ def test_meter_billing(mock_boto3, mock_get_region):
         config,
         dimensions,
         timestamp,
-        dry_run=True
+        dry_run=True,
+        customer_id=None
     )
 
     assert status['tier_1']['record_id'] == '0123456789'
@@ -74,7 +75,8 @@ def test_meter_billing_error(mock_boto3, mock_get_region):
         config,
         dimensions,
         timestamp,
-        dry_run=True
+        dry_run=True,
+        customer_id=None
     )
 
     assert status['tier_1']['error'] == \
