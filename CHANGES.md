@@ -1,3 +1,12 @@
+v1.3.0 (2025-11-19)
+-------------------
+
+- Add handling for REGION environment variable. If it is
+  set this is preferred to checking the metadata.
+- Add handling for SKIP_METADATA environment variable.
+  If it is set the metadata request will be skipped in
+  account info function.
+
 v1.2.1 (2025-06-10)
 -------------------
 
