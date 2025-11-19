@@ -22,6 +22,7 @@ metered billing of product usage in the AWS Marketplace.
 import boto3
 import json
 import logging
+import os
 import time
 import urllib.request
 import urllib.error
@@ -220,6 +221,10 @@ def get_csp_name(config: Config):
 
 def get_region():
     """Return the region name"""
+    region = os.environ.get('REGION')
+    if region:
+        return region
+
     api_header = _get_api_header()
     document = _fetch_metadata('document', api_header)
     metadata = json.loads(document)
@@ -238,10 +243,16 @@ def get_account_info(config: Config):
 
     The information contains the metadata for document, signature and pkcs7.
     """
-    account_info = _get_metadata()
-    account_info['document'] = json.loads(account_info.get('document', '{}'))
-    account_info['cloud_provider'] = get_csp_name(config)
+    skip_metadata = os.environ.get('SKIP_METADATA', False)
+    if skip_metadata:
+        account_info = {}
+    else:
+        account_info = _get_metadata()
+        account_info['document'] = json.loads(
+            account_info.get('document', '{}')
+        )
 
+    account_info['cloud_provider'] = get_csp_name(config)
     return account_info
 
 
