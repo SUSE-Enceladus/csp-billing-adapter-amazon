@@ -24,7 +24,7 @@ Summary:        Implements Amazon metering hooks for csp-billing-adapter
 License:        Apache-2.0
 Group:          Development/Languages/Python
 URL:            https://github.com/SUSE-Enceladus/%{name}
-Source:         https://files.pythonhosted.org/packages/source/c/%{name}/%{name}-%{version}.tar.gz
+Source:         https://files.pythonhosted.org/packages/source/c/%{name}/csp_billing_adapter_amazon-%{version}.tar.gz
 BuildRequires:  fdupes
 BuildRequires:  python-rpm-macros
 BuildRequires:  %{python_module csp-billing-adapter}
@@ -51,7 +51,7 @@ Provides a plugin for csp-billing-adapter to handle
 metering of usage in Amazon AWS.
 
 %prep
-%autosetup -n %{name}-%{version}
+%autosetup -n csp_billing_adapter_amazon-%{version}
 
 %build
 %pyproject_wheel
